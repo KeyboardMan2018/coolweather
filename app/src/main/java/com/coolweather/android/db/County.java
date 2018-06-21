@@ -3,9 +3,8 @@ package com.coolweather.android.db;
 import org.litepal.crud.DataSupport;
 
 /**
- * @author yujianzhong
- * @time 2018-06-12
- * @desc 封装县数据的类
+ * Created by yujianzhong on 2018/6/12.
+ * 封装县数据的类
  */
 public class County extends DataSupport {
     private int id;
