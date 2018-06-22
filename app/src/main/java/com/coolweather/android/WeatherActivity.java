@@ -19,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.coolweather.android.constant.CoolWeatherConstant;
 import com.coolweather.android.gson.Forecast;
 import com.coolweather.android.gson.Weather;
 import com.coolweather.android.util.HttpUtil;
@@ -30,6 +31,9 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 
+/**
+ * Created by yujianzhong on 2018/6/21.
+ */
 public class WeatherActivity extends AppCompatActivity {
 
     public DrawerLayout drawerLayout;
@@ -75,6 +79,46 @@ public class WeatherActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_weather);
         // 初始化各控件
+        initView();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String weatherString = prefs.getString("weather", null);
+        if (weatherString != null) {
+            // 有缓存时直接解析天气数据
+            Weather weather = Utility.handleWeatherResponse(weatherString);
+            mWeatherId = weather.basic.weatherId;
+            showWeatherInfo(weather);
+        } else {
+            // 无缓存时去服务器查询天气
+            mWeatherId = getIntent().getStringExtra("weather_id");
+            weatherLayout.setVisibility(View.INVISIBLE);
+            requestWeather(mWeatherId);
+        }
+        // 初始化监听器
+        initListener();
+        String bingPic = prefs.getString("bing_pic", null);
+        if (bingPic != null) {
+            Glide.with(this).load(bingPic).into(bingPicImg);
+        } else {
+            loadBingPic();
+        }
+    }
+
+    private void initListener() {
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(mWeatherId);
+            }
+        });
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
+    }
+
+    private void initView() {
         bingPicImg = findViewById(R.id.iv_bing_pic);
         weatherLayout = findViewById(R.id.weather_layout);
         titleCity = findViewById(R.id.tv_title_city);
@@ -91,44 +135,13 @@ public class WeatherActivity extends AppCompatActivity {
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         drawerLayout = findViewById(R.id.drawer_layout);
         navButton = findViewById(R.id.btn_nav);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String weatherString = prefs.getString("weather", null);
-        if (weatherString != null) {
-            // 有缓存时直接解析天气数据
-            Weather weather = Utility.handleWeatherResponse(weatherString);
-            mWeatherId = weather.basic.weatherId;
-            showWeatherInfo(weather);
-        } else {
-            // 无缓存时去服务器查询天气
-            mWeatherId = getIntent().getStringExtra("weather_id");
-            weatherLayout.setVisibility(View.INVISIBLE);
-            requestWeather(mWeatherId);
-        }
-        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                requestWeather(mWeatherId);
-            }
-        });
-        navButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                drawerLayout.openDrawer(GravityCompat.START);
-            }
-        });
-        String bingPic = prefs.getString("bing_pic", null);
-        if (bingPic != null) {
-            Glide.with(this).load(bingPic).into(bingPicImg);
-        } else {
-            loadBingPic();
-        }
     }
 
     /**
      * 根据天气id请求城市天气信息。
      */
     public void requestWeather(final String weatherId) {
-        String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=aba4f89cff7d479a97b835a57db1c342";
+        String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=" + CoolWeatherConstant.API_KEY;
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
